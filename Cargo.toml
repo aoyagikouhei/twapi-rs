@@ -1,0 +1,13 @@
+[package]
+name = "twapi"
+version = "0.1.0"
+authors = ["aoyagikouhei <aoyagi.kouhei@gmail.com>"]
+
+[dependencies]
+base64 = "*"
+chrono = "*"
+rand = "*"
+rust-crypto = "*"
+url = "*"
+reqwest = "*"
+serde_json = "*"
