@@ -1,3 +1,4 @@
+//! User Authentication OAuth1
 extern crate base64;
 extern crate chrono;
 extern crate crypto;

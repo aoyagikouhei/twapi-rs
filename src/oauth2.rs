@@ -1,5 +1,5 @@
+//! Application Only Authentication OAuth2
 extern crate base64;
-
 extern crate reqwest;
 extern crate serde_json;
 use self::reqwest::header::{Headers, Authorization, ContentType};

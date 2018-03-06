@@ -1,0 +1,69 @@
+# twapi-rs
+
+A simple Twitter library. This is easy for customize.
+
+[Documentation](https://docs.rs/twapi)
+
+## Description
+
+*twapi-rs** is is a simple Twitter library. This is easy for customize.
+
+## Features
+- Application Only Authentication
+- User Authentication
+- JSON support(post_direct_messages_events_new, post_direct_messages_welcome_messages_new)
+- Use only calculation OAuth
+- Any Twitter API Exucutable (maybe...)
+
+## Examples
+
+```rust
+extern crate twapi;
+extern crate serde_json;
+
+use twapi::Twapi;
+fn main() {
+    // Application Only Authentication Sample
+    let consumer_key = "xxx";
+    let consumer_secret = "xxx";
+    let applicaiton_auth = twapi::ApplicationAuth::new_with_consumer(
+        consumer_key,
+        consumer_secret
+    );
+    let res = applicaiton_auth.get_search_tweets(
+        &vec![("q", "新宿"), ("count", "2")]
+    ).unwrap();
+    println!("{:?}", res);
+
+    // Custmize Sample. Any API Executable!
+    let res: serde_json::Value = applicaiton_auth.get(
+        "https://api.twitter.com/1.1/statuses/user_timeline.json",
+        &vec![("screen_name", "aoyagikouhei"), ("count", "2")]
+    ).unwrap().json().unwrap();
+    println!("{:?}", res);
+
+    // JSON Sample
+    let user_auth = twapi::UserAuth::new(
+        "xxx",
+        "xxx",
+        "xxx",
+        "xxx"
+    );
+    let data = r#"{
+        "event": {
+            "type": "message_create",
+            "message_create": {
+                "target": {
+                    "recipient_id": "19522946"
+                },
+                "message_data": {
+                    "text": "予定表〜①ﾊﾝｶｸだ!"
+                }
+            }
+        }
+    }"#;
+    let v : serde_json::Value = serde_json::from_str(data).unwrap();
+    let res = user_auth.post_direct_messages_events_new(&v);
+    println!("{:?}", res);
+}
+```

@@ -1,3 +1,4 @@
+//! A simple Twitter library. This is easy for customize.
 extern crate base64;
 extern crate reqwest;
 extern crate serde_json;
