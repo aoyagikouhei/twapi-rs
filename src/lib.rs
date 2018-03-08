@@ -6,10 +6,13 @@ extern crate serde_json;
 pub mod oauth1;
 pub mod oauth2;
 
+use std::io::{BufReader, Cursor, Read};
+
 #[derive(Debug)]
 pub enum TwapiError {
     Connection(reqwest::Error),
     JSON(serde_json::Error),
+    IO(std::io::Error),
     NotExists,
 }
 
@@ -25,11 +28,28 @@ impl From<serde_json::Error> for TwapiError {
     }
 }
 
+impl From<std::io::Error> for TwapiError {
+    fn from(err: std::io::Error) -> TwapiError {
+        TwapiError::IO(err)
+    }
+}
+
 pub trait Twapi {
-    fn get(&self, uri: &str, options: &Vec<(&str, &str)>) -> Result<reqwest::Response, TwapiError>;
-    fn post(&self, uri: &str, options: &Vec<(&str, &str)>) -> Result<reqwest::Response, TwapiError>;
-    fn delete(&self, uri: &str, options: &Vec<(&str, &str)>) -> Result<reqwest::Response, TwapiError>;
-    fn json(&self, uri: &str, value: &serde_json::Value) -> Result<reqwest::Response, TwapiError>;
+    fn get(&self, _: &str, _: &Vec<(&str, &str)>) -> Result<reqwest::Response, TwapiError> {
+        Err(TwapiError::NotExists)
+    }
+    fn post(&self, _: &str, _: &Vec<(&str, &str)>) -> Result<reqwest::Response, TwapiError>{
+        Err(TwapiError::NotExists)
+    }
+    fn multipart(&self, _: &str, _: reqwest::multipart::Form) -> Result<reqwest::Response, TwapiError>{
+        Err(TwapiError::NotExists)
+    }
+    fn delete(&self, _: &str, _: &Vec<(&str, &str)>) -> Result<reqwest::Response, TwapiError>{
+        Err(TwapiError::NotExists)
+    }
+    fn json(&self, _: &str, _: &serde_json::Value) -> Result<reqwest::Response, TwapiError>{
+        Err(TwapiError::NotExists)
+    }
 
     fn get_search_tweets(
         &self,
@@ -125,6 +145,94 @@ pub trait Twapi {
             Ok(res.json()?)
         }
     }
+
+    fn post_media_upload(
+        &self,
+        file: &str,
+        additional_owners: Option<String>
+    ) -> Result<serde_json::Value, TwapiError> {
+        let form = reqwest::multipart::Form::new()
+            .file("media", file)?;
+        let form = if let Some(additional_owners) = additional_owners {
+            form.text("additional_owners", additional_owners)
+        } else {
+            form
+        };
+        let res = self.multipart(
+            "https://upload.twitter.com/1.1/media/upload.json",
+            form
+        )?.json()?;
+        Ok(res)
+    }
+
+    fn post_media_upload_chunk(
+        &self,
+        file: &str,
+        media_type: &str,
+        media_category: &str,
+        additional_owners: Option<String>
+    ) -> Result<serde_json::Value, TwapiError> {
+        let metadata = std::fs::metadata(file)?;
+        let file_size = metadata.len();
+        let form = reqwest::multipart::Form::new()
+            .text("command", "INIT")
+            .text("total_bytes", file_size.to_string())
+            .text("media_type", String::from(media_type))
+            .text("media_category", String::from(media_category));
+        let form = if let Some(additional_owners) = additional_owners {
+            form.text("additional_owners", additional_owners)
+        } else {
+            form
+        };
+        let media_id = {
+            let res_init: serde_json::Value = self.multipart(
+                "https://upload.twitter.com/1.1/media/upload.json",
+                form
+            )?.json()?;
+            match res_init.get("media_id_string") {
+                Some(media_id) => String::from(media_id.as_str().unwrap()),
+                None => return Ok(res_init.clone())
+            }
+        };
+
+        let mut segment_index = 0;
+        let f = std::fs::File::open(file)?;
+        let mut reader = BufReader::new(f);
+        while segment_index * 5000000 < file_size {
+            let read_size: usize = if (segment_index + 1) * 5000000 < file_size {
+                5000000
+            } else {
+                (file_size - segment_index * 5000000) as usize
+            };
+            let mut cursor = Cursor::new(vec![0; read_size]);
+            reader.read(cursor.get_mut())?;
+            let form = reqwest::multipart::Form::new()
+                .text("command", "APPEND")
+                .text("media_id", media_id.clone())
+                .text("segment_index", segment_index.to_string())
+                .part("media", reqwest::multipart::Part::reader(cursor));
+            //println!("{:?}", form);
+            let mut response = self.multipart(
+                "https://upload.twitter.com/1.1/media/upload.json",
+                form
+            )?;
+            segment_index = segment_index + 1;
+            if response.status().as_u16() > 299 {
+                let res = response.json()?;
+                return Ok(res);
+            }
+        }
+
+        let form = reqwest::multipart::Form::new()
+            .text("command", "FINALIZE")
+            .text("media_id", media_id);
+
+        let res = self.multipart(
+            "https://upload.twitter.com/1.1/media/upload.json",
+            form
+        )?.json()?;
+        Ok(res)
+    }
 }
 
 pub struct UserAuth {
@@ -158,6 +266,10 @@ impl Twapi for UserAuth {
         Ok(self.token.post(uri, options)?)
     }
 
+    fn multipart(&self, uri: &str, form: reqwest::multipart::Form) -> Result<reqwest::Response, TwapiError>{
+        Ok(self.token.multipart(uri, form)?)
+    }
+
     fn delete(&self, uri: &str, options: &Vec<(&str, &str)>) -> Result<reqwest::Response, TwapiError> {
         Ok(self.token.delete(uri, options)?)
     }
@@ -165,6 +277,7 @@ impl Twapi for UserAuth {
     fn json(&self, uri: &str, value: &serde_json::Value) -> Result<reqwest::Response, TwapiError> {
         Ok(self.token.json(uri, value)?)
     }
+    
 }
 
 pub struct ApplicationAuth {
@@ -198,17 +311,5 @@ impl ApplicationAuth {
 impl Twapi for ApplicationAuth {
     fn get(&self, uri: &str, options: &Vec<(&str, &str)>) -> Result<reqwest::Response, TwapiError> {
         Ok(self::oauth2::get(&self.baerer_token, uri, options)?)
-    }
-
-    fn delete(&self, _: &str, _: &Vec<(&str, &str)>) -> Result<reqwest::Response, TwapiError> {
-        Err(TwapiError::NotExists)
-    }
-
-    fn post(&self, _: &str, _: &Vec<(&str, &str)>) -> Result<reqwest::Response, TwapiError> {
-        Err(TwapiError::NotExists)
-    }
-
-    fn json(&self, _: &str, _: &serde_json::Value) -> Result<reqwest::Response, TwapiError> {
-        Err(TwapiError::NotExists)
     }
 }

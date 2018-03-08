@@ -119,6 +119,21 @@ impl Token {
             .send()
     }
 
+    pub fn multipart(
+        &self, uri: &str, 
+        form: reqwest::multipart::Form
+    ) -> Result<reqwest::Response, reqwest::Error> {
+        let mut headers = Headers::new();
+        headers.set(Authorization(
+            self.make_oauth_header("POST", uri, &vec![])));
+        let client = reqwest::Client::new();
+        client
+            .post(uri)
+            .headers(headers)
+            .multipart(form)
+            .send()
+    }
+
     pub fn delete(
         &self, uri: &str, options: &Vec<(&str, &str)>
     ) -> Result<reqwest::Response, reqwest::Error> {
