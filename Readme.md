@@ -11,8 +11,9 @@ A simple Twitter library. This is easy for customize.
 ## Features
 - Application Only Authentication
 - User Authentication
-- JSON support(post_direct_messages_events_new, post_direct_messages_welcome_messages_new)
+- JSON support(dm_event, welcome_message, media_metadata)
 - Use only calculation OAuth
+- Media Upload
 - Any Twitter API Exucutable (maybe...)
 
 ## Examples
@@ -64,6 +65,10 @@ fn main() {
     }"#;
     let v : serde_json::Value = serde_json::from_str(data).unwrap();
     let res = user_auth.post_direct_messages_events_new(&v);
+    println!("{:?}", res);
+
+    // Media Upload
+    let res = user_auth.post_media_upload_chunk("test.mp4", "video/mp4", "tweet_video", None);
     println!("{:?}", res);
 }
 ```
