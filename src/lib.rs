@@ -33,6 +33,8 @@ impl TwapiResponse {
 pub enum TwapiError {
     Connection(reqwest::Error),
     IO(std::io::Error),
+    UrlError(reqwest::UrlError),
+    Token((u16, String)),
     NotExists,
 }
 
@@ -45,6 +47,12 @@ impl From<reqwest::Error> for TwapiError {
 impl From<std::io::Error> for TwapiError {
     fn from(err: std::io::Error) -> TwapiError {
         TwapiError::IO(err)
+    }
+}
+
+impl From<reqwest::UrlError> for TwapiError {
+    fn from(err: reqwest::UrlError) -> TwapiError {
+        TwapiError::UrlError(err)
     }
 }
 
@@ -64,6 +72,17 @@ pub trait Twapi {
     }
     fn json(&self, _: &str, _: &serde_json::Value) -> Result<reqwest::Response, TwapiError>{
         Err(TwapiError::NotExists)
+    }
+
+    fn get_verify_credentials(
+        &self,
+        params: &Vec<(&str, &str)>
+    ) -> Result<TwapiResponse, TwapiError> {
+        let mut res = self.get(
+            "https://api.twitter.com/1.1/account/verify_credentials.json",
+            params
+        )?;
+        Ok(TwapiResponse::new(&mut res))
     }
 
     fn get_search_tweets(
