@@ -85,13 +85,14 @@ fn execute_token(uri: &str, signed: &str) -> Result<HashMap<String, String>, Twa
         .send()?;
     let status_code = response.status().as_u16();
     if status_code < 200 || status_code >= 300 {
-        // TODO : JSON
-        return Err(TwapiError::Token(response.text()?));
+        return Err(TwapiError::Token((status_code, response.text()?)));
     }
     let parsed_url = url::Url::parse(&format!("http://127.0.0.1/?{}", response.text()?))?;
     Ok(parsed_url.query_pairs().into_owned().collect())
 }
 
+/// OAuth requet token
+/// Return oauth_token, oauth_token_secret, uri
 pub fn request_token(
     consumer_key: &str,
     consumer_secret: &str,
@@ -119,6 +120,8 @@ pub fn request_token(
         ))
 }
 
+/// OAuth access token
+/// Return oauth_token, oauth_token_secret, user_id, screen_name
 pub fn access_token(
     consumer_key: &str,
     consumer_secret: &str,

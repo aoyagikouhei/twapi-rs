@@ -34,7 +34,7 @@ pub enum TwapiError {
     Connection(reqwest::Error),
     IO(std::io::Error),
     UrlError(reqwest::UrlError),
-    Token(String),
+    Token((u16, String)),
     NotExists,
 }
 
