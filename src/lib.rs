@@ -5,6 +5,7 @@ extern crate serde_json;
 
 pub mod oauth1;
 pub mod oauth2;
+pub mod account_activity;
 
 use std::io::{BufReader, Cursor, Read};
 
