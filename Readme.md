@@ -12,8 +12,9 @@ A simple Twitter library. This is easy for customize.
 - Application Only Authentication
 - User Authentication
 - JSON support(dm_event, welcome_message, media_metadata)
-- Use only calculation OAuth
+- Oauth1.0 Authentication
 - Media Upload
+- Add OAuth Web Application Example
 - Any Twitter API Exucutable (maybe...)
 
 ## Examples
