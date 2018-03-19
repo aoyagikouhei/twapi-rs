@@ -1,3 +1,6 @@
+## 0.3.1 (2018/03/19)
+- add oauth web applicaiton example
+
 ## 0.3.0 (2018/03/17)
 - add request_token
 - add access_token
