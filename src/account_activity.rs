@@ -12,5 +12,5 @@ pub fn calc_hmac(key: &str, input: &str) -> String {
 
 pub fn make_crc_token_response(consumer_secret: &str, crc_token: &str) -> String {
     let calced = calc_hmac(consumer_secret, crc_token);
-    format!("{{\"response_token\":\"sha265={}\"}}", calced)
+    format!("{{\"response_token\":\"sha256={}\"}}", calced)
 }

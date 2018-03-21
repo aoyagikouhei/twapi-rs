@@ -9,6 +9,15 @@ gotham_derive = "~0.2.0"
 hyper = "0.11"
 futures = "~0.1.11"
 mime = "0.3"
+r2d2 = "*"
+r2d2_postgres = "*"
 serde = "~1.0.33"
 serde_derive = "~1.0.33"
+serde_json = "*"
 twapi = { path = "../.." }
+
+[dependencies.postgres]
+version = "*"
+features = [
+    "with-serde_json",
+]
