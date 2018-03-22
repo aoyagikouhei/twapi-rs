@@ -45,7 +45,7 @@ fn make_query(list: &Vec<(&str, String)>, separator: &str) -> String {
     result
 }
 
-fn calc_oauth_header(
+pub fn calc_oauth_header(
     sign_key: &str, 
     consumer_key:&str, 
     header_options: &Vec<(&str, &str)>, 
@@ -147,113 +147,4 @@ pub fn access_token(
         hash_query.get("user_id").unwrap().clone(),
         hash_query.get("screen_name").unwrap().clone()
         ))
-}
-
-pub struct Token {
-    consumer_key: String,
-    consumer_secret: String,
-    access_token: String,
-    access_token_secret: String
-}
-
-impl Token {
-    pub fn new(
-        consumer_key: &str, 
-        consumer_secret: &str, 
-        access_token: &str, 
-        access_token_secret: &str
-    ) -> Token {
-        Token {
-            consumer_key: String::from(consumer_key),
-            consumer_secret: String::from(consumer_secret),
-            access_token: String::from(access_token),
-            access_token_secret: String::from(access_token_secret),
-        }
-    }
-
-    pub fn calc_oauth_header(&self, method: &str, uri: &str, options: &Vec<(&str, &str)>) -> String {
-        calc_oauth_header(
-            &format!("{}&{}", &self.consumer_secret, &self.access_token_secret), 
-            &self.consumer_key,
-            &vec![("oauth_token",  &self.access_token)],
-            method,
-            uri,
-            options
-        )
-    }
-
-    pub fn make_oauth_header(&self, method: &str, uri: &str, options: &Vec<(&str, &str)>) -> String {
-        format!("OAuth {}", self.calc_oauth_header(method, uri, options))
-    }
-
-    pub fn get(
-        &self, uri: &str, options: &Vec<(&str, &str)>
-    ) -> Result<reqwest::Response, reqwest::Error> {
-        let mut headers = Headers::new();
-        headers.set(Authorization(
-            self.make_oauth_header("GET", uri, &options)));
-        let client = reqwest::Client::new();
-        client
-            .get(uri)
-            .headers(headers)
-            .query(&options)
-            .send()
-    }
-
-    pub fn post(
-        &self, uri: &str, options: &Vec<(&str, &str)>
-    ) -> Result<reqwest::Response, reqwest::Error> {
-        let mut headers = Headers::new();
-        headers.set(Authorization(
-            self.make_oauth_header("POST", uri, &options)));
-        let client = reqwest::Client::new();
-        client
-            .post(uri)
-            .headers(headers)
-            .form(&options)
-            .send()
-    }
-
-    pub fn multipart(
-        &self, uri: &str, 
-        form: reqwest::multipart::Form
-    ) -> Result<reqwest::Response, reqwest::Error> {
-        let mut headers = Headers::new();
-        headers.set(Authorization(
-            self.make_oauth_header("POST", uri, &vec![])));
-        let client = reqwest::Client::new();
-        client
-            .post(uri)
-            .headers(headers)
-            .multipart(form)
-            .send()
-    }
-
-    pub fn delete(
-        &self, uri: &str, options: &Vec<(&str, &str)>
-    ) -> Result<reqwest::Response, reqwest::Error> {
-        let mut headers = Headers::new();
-        headers.set(Authorization(
-            self.make_oauth_header("DELETE", uri, &options)));
-        let client = reqwest::Client::new();
-        client
-            .delete(uri)
-            .headers(headers)
-            .query(&options)
-            .send()
-    }
-
-    pub fn json(
-        &self, uri: &str, value: &serde_json::Value
-    ) -> Result<reqwest::Response, reqwest::Error> {
-        let mut headers = Headers::new();
-        headers.set(Authorization(
-            self.make_oauth_header("POST", uri, &vec![])));
-        let client = reqwest::Client::new();
-        client
-            .post(uri)
-            .headers(headers)
-            .json(&value)
-            .send()
-    }
 }

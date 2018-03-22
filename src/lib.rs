@@ -7,6 +7,7 @@ pub mod oauth1;
 pub mod oauth2;
 pub mod account_activity;
 
+use self::reqwest::header::{Headers, Authorization};
 use std::io::{BufReader, Cursor, Read};
 
 /// Response from Twitter API
@@ -57,22 +58,140 @@ impl From<reqwest::UrlError> for TwapiError {
     }
 }
 
+fn make_account_activity_uri(
+    command_type: &str, 
+    env_name: Option<&str>, 
+    file_name: Option<&str>,
+) -> String {
+    let prefix = match env_name {
+        Some(env_name) => {
+            format!(
+                "https://api.twitter.com/1.1/account_activity/all/{}/{}",
+                env_name,
+                command_type
+            )
+        },
+        None => format!("https://api.twitter.com/1.1/account_activity/{}", command_type)
+    };
+    match file_name {
+        Some(file_name) => format!("{}/{}.json", prefix, file_name),
+        None => format!("{}.json", prefix),
+    }
+}
+
 /// Access to Twitter API
 pub trait Twapi {
-    fn get(&self, _: &str, _: &Vec<(&str, &str)>) -> Result<reqwest::Response, TwapiError> {
-        Err(TwapiError::NotExists)
+    fn authorization_header(
+        &self, 
+        method: &str, 
+        uri: &str, 
+        options: &Vec<(&str, &str)>
+    ) -> String;
+
+    fn get(
+        &self, 
+        uri: &str, 
+        query_options: &Vec<(&str, &str)>,
+    ) -> Result<reqwest::Response, reqwest::Error> {
+        let mut headers = Headers::new();
+        headers.set(Authorization(
+            self.authorization_header("GET", uri, query_options)));
+        let client = reqwest::Client::new();
+        client
+            .get(uri)
+            .headers(headers)
+            .query(query_options)
+            .send()
     }
-    fn post(&self, _: &str, _: &Vec<(&str, &str)>) -> Result<reqwest::Response, TwapiError>{
-        Err(TwapiError::NotExists)
+
+    fn post(
+        &self, 
+        uri: &str, 
+        query_options: &Vec<(&str, &str)>,
+        form_options: &Vec<(&str, &str)>,
+    ) -> Result<reqwest::Response, reqwest::Error>{
+        let mut merged_options = query_options.clone();
+        for option in form_options {
+            merged_options.push(*option);
+        }
+        let mut headers = Headers::new();
+        headers.set(Authorization(
+            self.authorization_header("POST", uri, &merged_options)));
+        let client = reqwest::Client::new();
+        client
+            .post(uri)
+            .query(query_options)
+            .form(form_options)
+            .headers(headers)
+            .send()
     }
-    fn multipart(&self, _: &str, _: reqwest::multipart::Form) -> Result<reqwest::Response, TwapiError>{
-        Err(TwapiError::NotExists)
+
+    fn multipart(
+        &self, 
+        uri: &str, 
+        query_options: &Vec<(&str, &str)>,
+        form: reqwest::multipart::Form,
+    ) -> Result<reqwest::Response, reqwest::Error>{
+        let mut headers = Headers::new();
+        headers.set(Authorization(
+            self.authorization_header("POST", uri, &vec![])));
+        let client = reqwest::Client::new();
+        client
+            .post(uri)
+            .query(query_options)
+            .multipart(form)
+            .headers(headers)
+            .send()
     }
-    fn delete(&self, _: &str, _: &Vec<(&str, &str)>) -> Result<reqwest::Response, TwapiError>{
-        Err(TwapiError::NotExists)
+
+    fn put(
+        &self, 
+        uri: &str, 
+        query_options: &Vec<(&str, &str)>,
+    ) -> Result<reqwest::Response, reqwest::Error> {
+        let mut headers = Headers::new();
+        headers.set(Authorization(
+            self.authorization_header("PUT", uri, query_options)));
+        let client = reqwest::Client::new();
+        client
+            .put(uri)
+            .headers(headers)
+            .query(query_options)
+            .send()
     }
-    fn json(&self, _: &str, _: &serde_json::Value) -> Result<reqwest::Response, TwapiError>{
-        Err(TwapiError::NotExists)
+
+    fn delete(
+        &self, 
+        uri: &str, 
+        query_options: &Vec<(&str, &str)>
+    ) -> Result<reqwest::Response, reqwest::Error> {
+        let mut headers = Headers::new();
+        headers.set(Authorization(
+            self.authorization_header("DELETE", uri, query_options)));
+        let client = reqwest::Client::new();
+        client
+            .delete(uri)
+            .headers(headers)
+            .query(query_options)
+            .send()
+    }
+
+    fn json(
+        &self, 
+        uri: &str, 
+        query_options: &Vec<(&str, &str)>,
+        json: &serde_json::Value,
+    ) -> Result<reqwest::Response, reqwest::Error>{
+        let mut headers = Headers::new();
+        headers.set(Authorization(
+            self.authorization_header("POST", uri, &vec![])));
+        let client = reqwest::Client::new();
+        client
+            .post(uri)
+            .query(query_options)
+            .json(&json)
+            .headers(headers)
+            .send()
     }
 
     fn get_verify_credentials(
@@ -103,6 +222,7 @@ pub trait Twapi {
     ) -> Result<TwapiResponse, TwapiError> {
         let mut res = self.post(
             "https://api.twitter.com/1.1/statuses/update.json",
+            &vec![],
             params
         )?;
         Ok(TwapiResponse::new(&mut res))
@@ -114,6 +234,7 @@ pub trait Twapi {
     ) -> Result<TwapiResponse, TwapiError> {
         let mut res = self.json(
             "https://api.twitter.com/1.1/direct_messages/events/new.json",
+            &vec![],
             value
         )?;
         Ok(TwapiResponse::new(&mut res))
@@ -157,6 +278,7 @@ pub trait Twapi {
     ) -> Result<TwapiResponse, TwapiError> {
         let mut res = self.json(
             "https://api.twitter.com/1.1/direct_messages/welcome_messages/new.json",
+            &vec![],
             value
         )?;
         Ok(TwapiResponse::new(&mut res))
@@ -198,6 +320,7 @@ pub trait Twapi {
         };
         let mut res = self.multipart(
             "https://upload.twitter.com/1.1/media/upload.json",
+            &vec![],
             form
         )?;
         Ok(TwapiResponse::new(&mut res))
@@ -225,6 +348,7 @@ pub trait Twapi {
         let media_id = {
             let mut response = self.multipart(
                 "https://upload.twitter.com/1.1/media/upload.json",
+                &vec![],
                 form
             )?;
             let result = TwapiResponse::new(&mut response);
@@ -254,6 +378,7 @@ pub trait Twapi {
             //println!("{:?}", form);
             let mut response = self.multipart(
                 "https://upload.twitter.com/1.1/media/upload.json",
+                &vec![],
                 form
             )?;
             segment_index = segment_index + 1;
@@ -269,6 +394,7 @@ pub trait Twapi {
 
         let mut response = self.multipart(
             "https://upload.twitter.com/1.1/media/upload.json",
+            &vec![],
             form
         )?;
         Ok(TwapiResponse::new(&mut response))
@@ -280,15 +406,143 @@ pub trait Twapi {
     ) -> Result<TwapiResponse, TwapiError> {
         let mut res = self.json(
             "https://upload.twitter.com/1.1/media/metadata/create.json",
+            &vec![],
             value
+        )?;
+        Ok(TwapiResponse::new(&mut res))
+    }
+
+    fn post_account_activity_webhooks(
+        &self,
+        uri: &str,
+        env_name: Option<&str>,
+    ) -> Result<TwapiResponse, TwapiError> {
+        let mut res = self.post(
+            &make_account_activity_uri("webhooks", env_name, None),
+            &vec![("url", uri)], 
+            &vec![]
+        )?;
+        Ok(TwapiResponse::new(&mut res))
+    }
+
+    fn get_account_activity_webhooks(
+        &self,
+        env_name: Option<&str>,
+    ) -> Result<TwapiResponse, TwapiError> {
+        let mut res = self.get(
+            &make_account_activity_uri("webhooks", env_name, None),
+            &vec![],
+        )?;
+        Ok(TwapiResponse::new(&mut res))
+    }
+
+    // Always Fails in Standard(Beta)
+    fn put_account_activity_webhooks(
+        &self,
+        env_name: Option<&str>,
+    ) -> Result<TwapiResponse, TwapiError> {
+        let mut res = self.put(
+            &make_account_activity_uri("webhooks", env_name, None),
+            &vec![],
+        )?;
+        Ok(TwapiResponse::new(&mut res))
+    }
+
+    fn delete_account_activity_webhooks(
+        &self,
+        webhook_id: &str,
+        env_name: Option<&str>,
+    ) -> Result<TwapiResponse, TwapiError> {
+        let mut res = self.delete(
+            &make_account_activity_uri("webhooks", env_name, Some(webhook_id)),
+            &vec![],
+        )?;
+        Ok(TwapiResponse::new(&mut res))
+    }
+
+    fn post_account_activity_subscriptions(
+        &self,
+        env_name: Option<&str>,
+    ) -> Result<TwapiResponse, TwapiError> {
+        let mut res = self.post(
+            &make_account_activity_uri("subscriptions", env_name, None),
+            &vec![], 
+            &vec![]
+        )?;
+        Ok(TwapiResponse::new(&mut res))
+    }
+
+    fn get_account_activity_all_count(
+        &self,
+    ) -> Result<TwapiResponse, TwapiError> {
+        let mut res = self.get(
+            "https://api.twitter.com/1.1/account_activity/all/count.json",
+            &vec![],
+        )?;
+        Ok(TwapiResponse::new(&mut res))
+    }
+
+    fn get_account_activity_subscriptions(
+        &self,
+        env_name: Option<&str>,
+    ) -> Result<TwapiResponse, TwapiError> {
+        let mut res = self.get(
+            &make_account_activity_uri("subscriptions", env_name, None),
+            &vec![],
+        )?;
+        Ok(TwapiResponse::new(&mut res))
+    }
+
+    fn get_account_activity_subscriptions_list(
+        &self,
+        env_name: Option<&str>,
+    ) -> Result<TwapiResponse, TwapiError> {
+        let mut res = self.get(
+            &make_account_activity_uri("subscriptions", env_name, Some("list")),
+            &vec![],
+        )?;
+        Ok(TwapiResponse::new(&mut res))
+    }
+
+    fn delete_account_activity_subscriptions(
+        &self,
+        env_name: Option<&str>,
+    ) -> Result<TwapiResponse, TwapiError> {
+        let mut res = self.delete(
+            &make_account_activity_uri("subscriptions", env_name, None),
+            &vec![],
         )?;
         Ok(TwapiResponse::new(&mut res))
     }
 }
 
+/// Application Only Authenticaiton by oauth2
+pub struct ApplicationAuth {
+    bearer_token: String
+}
+
+impl ApplicationAuth {
+    pub fn new (
+        bearer_token: &str,
+    ) -> ApplicationAuth {
+        ApplicationAuth {
+            bearer_token: String::from(bearer_token)
+        }
+    }   
+}
+
+impl Twapi for ApplicationAuth {
+    fn authorization_header(&self, _: &str, _: &str, _: &Vec<(&str, &str)>) -> String {
+        format!("Bearer {}", self.bearer_token)
+    }
+}
+
 /// User Authenticaiton by oauth1
 pub struct UserAuth {
-    token: self::oauth1::Token
+    consumer_key: String,
+    consumer_secret: String,
+    access_token: String,
+    access_token_secret: String,
 }
 
 impl UserAuth {
@@ -296,73 +550,32 @@ impl UserAuth {
         consumer_key: &str, 
         consumer_secret: &str, 
         access_token: &str, 
-        access_token_secret: &str
+        access_token_secret: &str,
     ) -> UserAuth {
         UserAuth {
-            token: self::oauth1::Token::new(
-                consumer_key,
-                consumer_secret,
-                access_token,
-                access_token_secret
-            )
+            consumer_key: String::from(consumer_key),
+            consumer_secret: String::from(consumer_secret),
+            access_token: String::from(access_token),
+            access_token_secret: String::from(access_token_secret),
         }
     }
 }
 
 impl Twapi for UserAuth {
-    fn get(&self, uri: &str, options: &Vec<(&str, &str)>) -> Result<reqwest::Response, TwapiError> {
-        Ok(self.token.get(uri, options)?)
-    }
-
-    fn post(&self, uri: &str, options: &Vec<(&str, &str)>) -> Result<reqwest::Response, TwapiError> {
-        Ok(self.token.post(uri, options)?)
-    }
-
-    fn multipart(&self, uri: &str, form: reqwest::multipart::Form) -> Result<reqwest::Response, TwapiError>{
-        Ok(self.token.multipart(uri, form)?)
-    }
-
-    fn delete(&self, uri: &str, options: &Vec<(&str, &str)>) -> Result<reqwest::Response, TwapiError> {
-        Ok(self.token.delete(uri, options)?)
-    }
-
-    fn json(&self, uri: &str, value: &serde_json::Value) -> Result<reqwest::Response, TwapiError> {
-        Ok(self.token.json(uri, value)?)
-    }
-    
-}
-
-/// Application Only Authenticaiton by oauth2
-pub struct ApplicationAuth {
-    baerer_token: String
-}
-
-impl ApplicationAuth {
-    pub fn new (
-        baerer_token: &str
-    ) -> ApplicationAuth {
-        ApplicationAuth {
-            baerer_token: String::from(baerer_token)
-        }
-    }
-
-    pub fn new_with_consumer (
-        consumer_key: &str, 
-        consumer_secret: &str
-    ) -> ApplicationAuth {
-        let baerer_token = self::oauth2::get_bearer_token(
-            consumer_key, 
-            consumer_secret, 
-            "https://api.twitter.com/oauth2/token", 
-            &vec![("grant_type", "client_credentials")]);
-        ApplicationAuth {
-            baerer_token: baerer_token.unwrap()
-        }
-    }
-}
-
-impl Twapi for ApplicationAuth {
-    fn get(&self, uri: &str, options: &Vec<(&str, &str)>) -> Result<reqwest::Response, TwapiError> {
-        Ok(self::oauth2::get(&self.baerer_token, uri, options)?)
+    fn authorization_header(
+        &self, 
+        method: &str, 
+        uri: &str, 
+        options: &Vec<(&str, &str)>,
+    ) -> String {
+        let res = oauth1::calc_oauth_header(
+            &format!("{}&{}", &self.consumer_secret, &self.access_token_secret), 
+            &self.consumer_key,
+            &vec![("oauth_token",  &self.access_token)],
+            method,
+            uri,
+            options
+        );
+        format!("OAuth {}", res)   
     }
 }
