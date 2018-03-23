@@ -1,4 +1,4 @@
-## 0.4.0 (2018/xx/xx)
+## 0.4.0 (2018/03/23)
 - add account activity api
 - add account activity web applicaiton example
 
