@@ -82,15 +82,20 @@ pub fn post_handler(mut state: State) -> Box<HandlerFuture> {
         .concat2()
         .then(|full_body| match full_body {
             Ok(valid_body) => {
-                let headers = format!("{:?}", Headers::take_from(&mut state));
-                let remote_addr = "aaa";
+                let headers = Headers::take_from(&mut state);
+                let ip = String::from_utf8_lossy(headers.get_raw("X-Real-IP").unwrap().one().unwrap());
+                let sign = String::from_utf8_lossy(headers.get_raw("X-Twitter-Webhooks-Signature").unwrap().one().unwrap());                
 
                 let application_data = ApplicationData::take_from(&mut state);
                 let body_content = String::from_utf8(valid_body.to_vec()).unwrap();
+
+                let calced_sign = twapi::account_activity::calc_hmac(&application_data.consumer_secret, &body_content);
+                let merged = format!("{},{}", sign, calced_sign);
+
                 let json_value: serde_json::Value = serde_json::from_str(&body_content).unwrap();
                 application_data.conn.execute(
                     "INSERT INTO test (data, headers, ip) VALUES ($1, $2, $3)", 
-                    &[&json_value, &headers, &remote_addr]).unwrap();
+                    &[&json_value, &merged, &ip]).unwrap();
                 let res = create_response(
                     &state, 
                     StatusCode::Ok, 
