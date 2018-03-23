@@ -90,7 +90,7 @@ pub fn post_handler(mut state: State) -> Box<HandlerFuture> {
                 let body_content = String::from_utf8(valid_body.to_vec()).unwrap();
 
                 let calced_sign = twapi::account_activity::calc_hmac(&application_data.consumer_secret, &body_content);
-                let merged = format!("{},{}", sign, calced_sign);
+                let merged = format!("{},{},{:?}", sign, calced_sign, twapi::account_activity::check_signature(&sign, &application_data.consumer_secret, &body_content));
 
                 let json_value: serde_json::Value = serde_json::from_str(&body_content).unwrap();
                 application_data.conn.execute(
