@@ -92,7 +92,7 @@ pub fn post_handler(mut state: State) -> Box<HandlerFuture> {
                 if sign_flag {
                     let json_value: serde_json::Value = serde_json::from_str(&body_content).unwrap();
                     application_data.conn.execute(
-                        "INSERT INTO test (data, headers, ip) VALUES ($1, 'aaa', $3)", 
+                        "INSERT INTO test (data, headers, ip) VALUES ($1, 'aaa', $2)", 
                         &[&json_value, &ip]).unwrap();                    
                 };
                 let res = create_response(
