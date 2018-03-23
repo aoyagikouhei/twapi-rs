@@ -88,14 +88,13 @@ pub fn post_handler(mut state: State) -> Box<HandlerFuture> {
 
                 let application_data = ApplicationData::take_from(&mut state);
                 let body_content = String::from_utf8(valid_body.to_vec()).unwrap();
-
-                let calced_sign = twapi::account_activity::calc_hmac(&application_data.consumer_secret, &body_content);
-                let merged = format!("{},{},{:?}", sign, calced_sign, twapi::account_activity::check_signature(&sign, &application_data.consumer_secret, &body_content));
-
-                let json_value: serde_json::Value = serde_json::from_str(&body_content).unwrap();
-                application_data.conn.execute(
-                    "INSERT INTO test (data, headers, ip) VALUES ($1, $2, $3)", 
-                    &[&json_value, &merged, &ip]).unwrap();
+                let sign_flag = twapi::account_activity::check_signature(&sign, &application_data.consumer_secret, &body_content);
+                if sign_flag {
+                    let json_value: serde_json::Value = serde_json::from_str(&body_content).unwrap();
+                    application_data.conn.execute(
+                        "INSERT INTO test (data, headers, ip) VALUES ($1, 'aaa', $3)", 
+                        &[&json_value, &ip]).unwrap();                    
+                };
                 let res = create_response(
                     &state, 
                     StatusCode::Ok, 
