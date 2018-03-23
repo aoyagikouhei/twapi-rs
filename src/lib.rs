@@ -5,6 +5,8 @@ extern crate serde_json;
 
 pub mod oauth1;
 pub mod oauth2;
+
+#[cfg(feature = "account-activity")]
 pub mod account_activity;
 
 use self::reqwest::header::{Headers, Authorization};

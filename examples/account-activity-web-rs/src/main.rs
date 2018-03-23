@@ -89,11 +89,12 @@ pub fn post_handler(mut state: State) -> Box<HandlerFuture> {
                 let application_data = ApplicationData::take_from(&mut state);
                 let body_content = String::from_utf8(valid_body.to_vec()).unwrap();
                 let sign_flag = twapi::account_activity::check_signature(&sign, &application_data.consumer_secret, &body_content);
-                if sign_flag {
+                let ip_flag = twapi::account_activity::check_ip(&ip);
+                if sign_flag && ip_flag {
                     let json_value: serde_json::Value = serde_json::from_str(&body_content).unwrap();
                     application_data.conn.execute(
-                        "INSERT INTO test (data, headers, ip) VALUES ($1, 'aaa', $2)", 
-                        &[&json_value, &ip]).unwrap();                    
+                        "INSERT INTO test (data) VALUES ($1)", 
+                        &[&json_value]).unwrap();                    
                 };
                 let res = create_response(
                     &state, 
