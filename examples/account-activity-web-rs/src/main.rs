@@ -13,7 +13,7 @@ extern crate serde_derive;
 extern crate twapi;
 
 use futures::{Stream, Future};
-use hyper::{Response, StatusCode, Body};
+use hyper::{Response, StatusCode, Body, Headers};
 use gotham::http::response::create_response;
 use gotham::handler::{IntoHandlerError, HandlerFuture};
 use gotham::middleware::Middleware;
@@ -57,6 +57,16 @@ struct QueryStringExtractor {
 }
 
 pub fn get_handler(mut state: State) -> (State, Response) {
+    /*
+    let headers = {
+        let headers = Headers::borrow_from(&state);
+        format!("{:?}", headers)
+    };
+    */
+    let headers = Headers::take_from(&mut state);
+    let remote_addr = gotham::state::client_addr(&state);
+    
+
     let consumer_secret: String = {
         let application_data = ApplicationData::borrow_mut_from(&mut state);
          application_data.consumer_secret.clone()
@@ -76,10 +86,14 @@ pub fn post_handler(mut state: State) -> Box<HandlerFuture> {
         .concat2()
         .then(|full_body| match full_body {
             Ok(valid_body) => {
+                let headers = format!("{:?}", Headers::take_from(&mut state));
+                let remote_addr = format!("{:?}", gotham::state::client_addr(&state).unwrap());
                 let application_data = ApplicationData::take_from(&mut state);
                 let body_content = String::from_utf8(valid_body.to_vec()).unwrap();
                 let json_value: serde_json::Value = serde_json::from_str(&body_content).unwrap();
-                application_data.conn.execute("INSERT INTO test (data) VALUES ($1)", &[&json_value]).unwrap();
+                application_data.conn.execute(
+                    "INSERT INTO test (data, headers, ip) VALUES ($1, $2, $3)", 
+                    &[&json_value, &headers, &remote_addr]).unwrap();
                 let res = create_response(
                     &state, 
                     StatusCode::Ok, 
