@@ -57,15 +57,11 @@ struct QueryStringExtractor {
 }
 
 pub fn get_handler(mut state: State) -> (State, Response) {
-    /*
-    let headers = {
-        let headers = Headers::borrow_from(&state);
-        format!("{:?}", headers)
-    };
-    */
     let headers = Headers::take_from(&mut state);
-    let remote_addr = gotham::state::client_addr(&state);
-    
+    let ua = String::from_utf8_lossy(headers.get_raw("user-agent").unwrap().one().unwrap());
+    println!("{}", ua);
+    // "X-Real-IP"
+    // "X-Twitter-Webhooks-Signature"
 
     let consumer_secret: String = {
         let application_data = ApplicationData::borrow_mut_from(&mut state);
@@ -87,7 +83,8 @@ pub fn post_handler(mut state: State) -> Box<HandlerFuture> {
         .then(|full_body| match full_body {
             Ok(valid_body) => {
                 let headers = format!("{:?}", Headers::take_from(&mut state));
-                let remote_addr = format!("{:?}", gotham::state::client_addr(&state).unwrap());
+                let remote_addr = "aaa";
+
                 let application_data = ApplicationData::take_from(&mut state);
                 let body_content = String::from_utf8(valid_body.to_vec()).unwrap();
                 let json_value: serde_json::Value = serde_json::from_str(&body_content).unwrap();
