@@ -1,6 +1,6 @@
 [package]
 name = "twapi"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["aoyagikouhei <aoyagi.kouhei@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A simple Twitter library. This is easy for customize."
@@ -11,14 +11,14 @@ readme = "Readme.md"
 documentation = "https://docs.rs/twapi"
 
 [dependencies]
-base64 = "~0.9.0"
-chrono = "~0.4.0"
+base64 = "~0.9.1"
+chrono = "~0.4.2"
 rand = "~0.4.2"
 rust-crypto = "~0.2.36"
 url = "~1.7.0"
 reqwest = "~0.8.5"
-serde_json = "~1.0.10"
-ipnetwork = { version = "~0.12.8", optional = true }
+serde_json = "~1.0.17"
+ipnetwork = { version = "~0.13.0", optional = true }
 
 [features]
 account-activity = [ "ipnetwork" ]

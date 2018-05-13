@@ -3,6 +3,8 @@ extern crate base64;
 extern crate reqwest;
 extern crate serde_json;
 
+use std::{thread, time};
+
 pub mod oauth1;
 pub mod oauth2;
 
@@ -29,6 +31,13 @@ impl TwapiResponse {
 
     pub fn is_success(&self) -> bool {
         200 <= self.status_code && self.status_code < 300
+    }
+
+    pub fn copy_json_value(&self) -> Option<serde_json::Value> {
+        match &self.json {
+            Some(ref json) => Some(json.clone()),
+            None => None,
+        }
     }
 } 
 
@@ -301,11 +310,34 @@ pub trait Twapi {
         &self,
         media_id: &str,
     ) -> Result<TwapiResponse, TwapiError> {
+        println!("xxx{:?}", media_id);
         let mut res = self.get(
             "https://upload.twitter.com/1.1/media/upload.json",
             &vec![("command", "STATUS"), ("media_id", media_id)]
         )?;
         Ok(TwapiResponse::new(&mut res))
+    }
+
+    fn get_media_upload_until_succeeded(
+        &self,
+        media_id: &str,
+    ) -> Result<(TwapiResponse, String), TwapiError> {
+        loop {
+            let check_after_secs = {
+                let result = self.get_media_upload(&media_id)?;
+                if !result.is_success() {
+                    return Ok((result, String::from("failed")));
+                }
+                let json = result.copy_json_value().unwrap();
+                let processing_info = json.get("processing_info").unwrap();
+                let state = String::from(processing_info.get("state").unwrap().as_str().unwrap());
+                if state == "succeeded" || state == "failed" {
+                    return Ok((result, state.clone()));
+                }
+                processing_info.get("check_after_secs").unwrap().as_u64().unwrap()
+            };
+            thread::sleep(time::Duration::new(check_after_secs, 0));
+        }
     }
 
     fn post_media_upload(
@@ -377,7 +409,7 @@ pub trait Twapi {
                 .text("media_id", media_id.clone())
                 .text("segment_index", segment_index.to_string())
                 .part("media", reqwest::multipart::Part::reader(cursor));
-            //println!("{:?}", form);
+            
             let mut response = self.multipart(
                 "https://upload.twitter.com/1.1/media/upload.json",
                 &vec![],
@@ -392,14 +424,24 @@ pub trait Twapi {
 
         let form = reqwest::multipart::Form::new()
             .text("command", "FINALIZE")
-            .text("media_id", media_id);
+            .text("media_id", media_id.clone());
 
         let mut response = self.multipart(
             "https://upload.twitter.com/1.1/media/upload.json",
             &vec![],
             form
         )?;
-        Ok(TwapiResponse::new(&mut response))
+        let finalize_result = TwapiResponse::new(&mut response);
+        if !finalize_result.is_success() {
+            return Ok(finalize_result);
+        }
+
+        let (result, state) = self.get_media_upload_until_succeeded(&media_id)?;
+        Ok(if state == "failed" {
+            result
+        } else {
+            finalize_result
+        })
     }
 
     fn post_media_metadata_create(
