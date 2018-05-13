@@ -310,7 +310,6 @@ pub trait Twapi {
         &self,
         media_id: &str,
     ) -> Result<TwapiResponse, TwapiError> {
-        println!("xxx{:?}", media_id);
         let mut res = self.get(
             "https://upload.twitter.com/1.1/media/upload.json",
             &vec![("command", "STATUS"), ("media_id", media_id)]
@@ -321,18 +320,18 @@ pub trait Twapi {
     fn get_media_upload_until_succeeded(
         &self,
         media_id: &str,
-    ) -> Result<(TwapiResponse, String), TwapiError> {
+    ) -> Result<TwapiResponse, TwapiError> {
         loop {
             let check_after_secs = {
                 let result = self.get_media_upload(&media_id)?;
                 if !result.is_success() {
-                    return Ok((result, String::from("failed")));
+                    return Ok(result);
                 }
                 let json = result.copy_json_value().unwrap();
                 let processing_info = json.get("processing_info").unwrap();
                 let state = String::from(processing_info.get("state").unwrap().as_str().unwrap());
                 if state == "succeeded" || state == "failed" {
-                    return Ok((result, state.clone()));
+                    return Ok(result);
                 }
                 processing_info.get("check_after_secs").unwrap().as_u64().unwrap()
             };
@@ -431,17 +430,19 @@ pub trait Twapi {
             &vec![],
             form
         )?;
-        let finalize_result = TwapiResponse::new(&mut response);
-        if !finalize_result.is_success() {
-            return Ok(finalize_result);
+        let result = TwapiResponse::new(&mut response);
+        if !result.is_success() {
+            return Ok(result);
         }
-
-        let (result, state) = self.get_media_upload_until_succeeded(&media_id)?;
-        Ok(if state == "failed" {
-            result
+        let json = result.copy_json_value().unwrap();
+        let processing_info = json.get("processing_info");
+        if processing_info == None {
+            Ok(result)
         } else {
-            finalize_result
-        })
+            // check only processing_info included.
+            // if not included call then you get "Invalid mediaId.".
+            self.get_media_upload_until_succeeded(&media_id)
+        }
     }
 
     fn post_media_metadata_create(
