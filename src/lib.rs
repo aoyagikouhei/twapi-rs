@@ -11,7 +11,7 @@ pub mod oauth2;
 #[cfg(feature = "account-activity")]
 pub mod account_activity;
 
-use self::reqwest::header::{Headers, Authorization};
+use self::reqwest::header::{HeaderMap, AUTHORIZATION};
 use std::io::{BufReader, Cursor, Read};
 
 /// Response from Twitter API
@@ -104,9 +104,9 @@ pub trait Twapi {
         uri: &str, 
         query_options: &Vec<(&str, &str)>,
     ) -> Result<reqwest::Response, reqwest::Error> {
-        let mut headers = Headers::new();
-        headers.set(Authorization(
-            self.authorization_header("GET", uri, query_options)));
+        let mut headers = HeaderMap::new();
+        headers.insert(AUTHORIZATION, 
+            self.authorization_header("GET", uri, query_options).parse().unwrap());
         let client = reqwest::Client::new();
         client
             .get(uri)
@@ -125,9 +125,9 @@ pub trait Twapi {
         for option in form_options {
             merged_options.push(*option);
         }
-        let mut headers = Headers::new();
-        headers.set(Authorization(
-            self.authorization_header("POST", uri, &merged_options)));
+        let mut headers = HeaderMap::new();
+        headers.insert(AUTHORIZATION, 
+            self.authorization_header("POST", uri, &merged_options).parse().unwrap());
         let client = reqwest::Client::new();
         client
             .post(uri)
@@ -143,9 +143,9 @@ pub trait Twapi {
         query_options: &Vec<(&str, &str)>,
         form: reqwest::multipart::Form,
     ) -> Result<reqwest::Response, reqwest::Error>{
-        let mut headers = Headers::new();
-        headers.set(Authorization(
-            self.authorization_header("POST", uri, &vec![])));
+        let mut headers = HeaderMap::new();
+        headers.insert(AUTHORIZATION, 
+            self.authorization_header("POST", uri, &vec![]).parse().unwrap());
         let client = reqwest::Client::new();
         client
             .post(uri)
@@ -160,9 +160,9 @@ pub trait Twapi {
         uri: &str, 
         query_options: &Vec<(&str, &str)>,
     ) -> Result<reqwest::Response, reqwest::Error> {
-        let mut headers = Headers::new();
-        headers.set(Authorization(
-            self.authorization_header("PUT", uri, query_options)));
+        let mut headers = HeaderMap::new();
+        headers.insert(AUTHORIZATION, 
+            self.authorization_header("PUT", uri, query_options).parse().unwrap());
         let client = reqwest::Client::new();
         client
             .put(uri)
@@ -176,9 +176,9 @@ pub trait Twapi {
         uri: &str, 
         query_options: &Vec<(&str, &str)>
     ) -> Result<reqwest::Response, reqwest::Error> {
-        let mut headers = Headers::new();
-        headers.set(Authorization(
-            self.authorization_header("DELETE", uri, query_options)));
+        let mut headers = HeaderMap::new();
+        headers.insert(AUTHORIZATION, 
+            self.authorization_header("DELETE", uri, query_options).parse().unwrap());
         let client = reqwest::Client::new();
         client
             .delete(uri)
@@ -193,9 +193,9 @@ pub trait Twapi {
         query_options: &Vec<(&str, &str)>,
         json: &serde_json::Value,
     ) -> Result<reqwest::Response, reqwest::Error>{
-        let mut headers = Headers::new();
-        headers.set(Authorization(
-            self.authorization_header("POST", uri, &vec![])));
+        let mut headers = HeaderMap::new();
+        headers.insert(AUTHORIZATION, 
+            self.authorization_header("POST", uri, &vec![]).parse().unwrap());
         let client = reqwest::Client::new();
         client
             .post(uri)

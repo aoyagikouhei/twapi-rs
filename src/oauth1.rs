@@ -7,17 +7,22 @@ extern crate url;
 extern crate reqwest;
 extern crate serde_json;
 
-use self::rand::{Rng, thread_rng};
+use self::rand::{
+    seq::SliceRandom,
+};
 use self::chrono::prelude::*;
 use self::crypto::sha1::Sha1;
 use self::crypto::hmac::Hmac;
 use self::crypto::mac::Mac;
-use self::reqwest::header::{Headers, Authorization};
+use self::reqwest::header::{HeaderMap, AUTHORIZATION};
 use std::collections::HashMap;
 use super::TwapiError;
 
+const BASE_STR: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
 fn nonce() -> String {
-    thread_rng().gen_ascii_chars().take(32).collect::<String>()
+    let mut rng = &mut rand::thread_rng();
+    String::from_utf8(BASE_STR.as_bytes().choose_multiple(&mut rng, 32).cloned().collect()).unwrap()
 }
 
 fn timestamp() -> String {
@@ -76,8 +81,8 @@ pub fn calc_oauth_header(
 }
 
 fn execute_token(uri: &str, signed: &str) -> Result<HashMap<String, String>, TwapiError> {
-    let mut headers = Headers::new();
-    headers.set(Authorization(format!("OAuth {}", signed)));
+    let mut headers = HeaderMap::new();
+    headers.insert(AUTHORIZATION, format!("OAuth {}", signed).parse().unwrap());
     let client = reqwest::Client::new();
     let mut response = client
         .post(uri)
