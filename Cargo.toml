@@ -9,6 +9,7 @@ keywords = ["twitter", "oauth"]
 categories = ["api-bindings"]
 readme = "Readme.md"
 documentation = "https://docs.rs/twapi"
+edition = "2018"
 
 [dependencies]
 base64 = "~0.10.1"
