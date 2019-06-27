@@ -1,8 +1,8 @@
 //! A simple Twitter library. This is easy for customize.
-extern crate base64;
-extern crate reqwest;
-extern crate serde_json;
-extern crate twapi_oauth;
+
+use reqwest;
+use serde_json;
+use twapi_oauth;
 
 use std::{thread, time};
 
@@ -19,14 +19,14 @@ use std::io::{BufReader, Cursor, Read};
 #[derive(Debug)]
 pub struct TwapiResponse {
     pub status_code: u16,
-    pub json: Option<serde_json::Value>
+    pub json: Option<serde_json::Value>,
 }
 
 impl TwapiResponse {
     pub fn new(response: &mut reqwest::Response) -> TwapiResponse {
-        TwapiResponse{
+        TwapiResponse {
             status_code: response.status().as_u16(),
-            json: response.json().ok()
+            json: response.json().ok(),
         }
     }
 
@@ -76,14 +76,14 @@ fn make_account_activity_uri(
     file_name: Option<&str>,
 ) -> String {
     let prefix = match env_name {
-        Some(env_name) => {
-            format!(
-                "https://api.twitter.com/1.1/account_activity/all/{}/{}",
-                env_name,
-                command_type
-            )
-        },
-        None => format!("https://api.twitter.com/1.1/account_activity/{}", command_type)
+        Some(env_name) => format!(
+            "https://api.twitter.com/1.1/account_activity/all/{}/{}",
+            env_name, command_type
+        ),
+        None => format!(
+            "https://api.twitter.com/1.1/account_activity/{}",
+            command_type
+        ),
     };
     match file_name {
         Some(file_name) => format!("{}/{}.json", prefix, file_name),
@@ -93,12 +93,7 @@ fn make_account_activity_uri(
 
 /// Access to Twitter API
 pub trait Twapi {
-    fn authorization_header(
-        &self,
-        method: &str,
-        uri: &str,
-        options: &Vec<(&str, &str)>
-    ) -> String;
+    fn authorization_header(&self, method: &str, uri: &str, options: &Vec<(&str, &str)>) -> String;
 
     fn get(
         &self,
@@ -106,14 +101,14 @@ pub trait Twapi {
         query_options: &Vec<(&str, &str)>,
     ) -> Result<reqwest::Response, reqwest::Error> {
         let mut headers = HeaderMap::new();
-        headers.insert(AUTHORIZATION,
-            self.authorization_header("GET", uri, query_options).parse().unwrap());
+        headers.insert(
+            AUTHORIZATION,
+            self.authorization_header("GET", uri, query_options)
+                .parse()
+                .unwrap(),
+        );
         let client = reqwest::Client::new();
-        client
-            .get(uri)
-            .headers(headers)
-            .query(query_options)
-            .send()
+        client.get(uri).headers(headers).query(query_options).send()
     }
 
     fn post(
@@ -121,14 +116,18 @@ pub trait Twapi {
         uri: &str,
         query_options: &Vec<(&str, &str)>,
         form_options: &Vec<(&str, &str)>,
-    ) -> Result<reqwest::Response, reqwest::Error>{
+    ) -> Result<reqwest::Response, reqwest::Error> {
         let mut merged_options = query_options.clone();
         for option in form_options {
             merged_options.push(*option);
         }
         let mut headers = HeaderMap::new();
-        headers.insert(AUTHORIZATION,
-            self.authorization_header("POST", uri, &merged_options).parse().unwrap());
+        headers.insert(
+            AUTHORIZATION,
+            self.authorization_header("POST", uri, &merged_options)
+                .parse()
+                .unwrap(),
+        );
         let client = reqwest::Client::new();
         client
             .post(uri)
@@ -143,10 +142,14 @@ pub trait Twapi {
         uri: &str,
         query_options: &Vec<(&str, &str)>,
         form: reqwest::multipart::Form,
-    ) -> Result<reqwest::Response, reqwest::Error>{
+    ) -> Result<reqwest::Response, reqwest::Error> {
         let mut headers = HeaderMap::new();
-        headers.insert(AUTHORIZATION,
-            self.authorization_header("POST", uri, &vec![]).parse().unwrap());
+        headers.insert(
+            AUTHORIZATION,
+            self.authorization_header("POST", uri, &vec![])
+                .parse()
+                .unwrap(),
+        );
         let client = reqwest::Client::new();
         client
             .post(uri)
@@ -162,24 +165,28 @@ pub trait Twapi {
         query_options: &Vec<(&str, &str)>,
     ) -> Result<reqwest::Response, reqwest::Error> {
         let mut headers = HeaderMap::new();
-        headers.insert(AUTHORIZATION,
-            self.authorization_header("PUT", uri, query_options).parse().unwrap());
+        headers.insert(
+            AUTHORIZATION,
+            self.authorization_header("PUT", uri, query_options)
+                .parse()
+                .unwrap(),
+        );
         let client = reqwest::Client::new();
-        client
-            .put(uri)
-            .headers(headers)
-            .query(query_options)
-            .send()
+        client.put(uri).headers(headers).query(query_options).send()
     }
 
     fn delete(
         &self,
         uri: &str,
-        query_options: &Vec<(&str, &str)>
+        query_options: &Vec<(&str, &str)>,
     ) -> Result<reqwest::Response, reqwest::Error> {
         let mut headers = HeaderMap::new();
-        headers.insert(AUTHORIZATION,
-            self.authorization_header("DELETE", uri, query_options).parse().unwrap());
+        headers.insert(
+            AUTHORIZATION,
+            self.authorization_header("DELETE", uri, query_options)
+                .parse()
+                .unwrap(),
+        );
         let client = reqwest::Client::new();
         client
             .delete(uri)
@@ -193,10 +200,14 @@ pub trait Twapi {
         uri: &str,
         query_options: &Vec<(&str, &str)>,
         json: &serde_json::Value,
-    ) -> Result<reqwest::Response, reqwest::Error>{
+    ) -> Result<reqwest::Response, reqwest::Error> {
         let mut headers = HeaderMap::new();
-        headers.insert(AUTHORIZATION,
-            self.authorization_header("POST", uri, &vec![]).parse().unwrap());
+        headers.insert(
+            AUTHORIZATION,
+            self.authorization_header("POST", uri, &vec![])
+                .parse()
+                .unwrap(),
+        );
         let client = reqwest::Client::new();
         client
             .post(uri)
@@ -208,112 +219,105 @@ pub trait Twapi {
 
     fn get_verify_credentials(
         &self,
-        params: &Vec<(&str, &str)>
+        params: &Vec<(&str, &str)>,
     ) -> Result<TwapiResponse, TwapiError> {
         let mut res = self.get(
             "https://api.twitter.com/1.1/account/verify_credentials.json",
-            params
+            params,
         )?;
         Ok(TwapiResponse::new(&mut res))
     }
 
-    fn get_search_tweets(
-        &self,
-        params: &Vec<(&str, &str)>
-    ) -> Result<TwapiResponse, TwapiError> {
-        let mut res = self.get(
-            "https://api.twitter.com/1.1/search/tweets.json",
-            params
-        )?;
+    fn get_search_tweets(&self, params: &Vec<(&str, &str)>) -> Result<TwapiResponse, TwapiError> {
+        let mut res = self.get("https://api.twitter.com/1.1/search/tweets.json", params)?;
         Ok(TwapiResponse::new(&mut res))
     }
 
     fn post_statuses_update(
         &self,
-        params: &Vec<(&str, &str)>
+        params: &Vec<(&str, &str)>,
     ) -> Result<TwapiResponse, TwapiError> {
         let mut res = self.post(
             "https://api.twitter.com/1.1/statuses/update.json",
             &vec![],
-            params
+            params,
         )?;
         Ok(TwapiResponse::new(&mut res))
     }
 
     fn post_direct_messages_events_new(
         &self,
-        value: &serde_json::Value
+        value: &serde_json::Value,
     ) -> Result<TwapiResponse, TwapiError> {
         let mut res = self.json(
             "https://api.twitter.com/1.1/direct_messages/events/new.json",
             &vec![],
-            value
+            value,
         )?;
         Ok(TwapiResponse::new(&mut res))
     }
 
     fn get_account_activity_subscription(
         &self,
-        env_name: &str
+        env_name: &str,
     ) -> Result<TwapiResponse, TwapiError> {
         let mut res = self.get(
-            format!("https://api.twitter.com/1.1/account_activity/all/{}/subscriptions.json", env_name).as_str(),
-            &vec![]
+            format!(
+                "https://api.twitter.com/1.1/account_activity/all/{}/subscriptions.json",
+                env_name
+            )
+            .as_str(),
+            &vec![],
         )?;
         Ok(TwapiResponse::new(&mut res))
     }
 
-    fn get_direct_messages_welcome_messages_list(
-        &self
-    ) -> Result<TwapiResponse, TwapiError> {
+    fn get_direct_messages_welcome_messages_list(&self) -> Result<TwapiResponse, TwapiError> {
         let mut res = self.get(
             "https://api.twitter.com/1.1/direct_messages/welcome_messages/list.json",
-            &vec![]
+            &vec![],
         )?;
         Ok(TwapiResponse::new(&mut res))
     }
 
     fn get_direct_messages_welcome_messages_show(
         &self,
-        id: &str
+        id: &str,
     ) -> Result<TwapiResponse, TwapiError> {
         let mut res = self.get(
             "https://api.twitter.com/1.1/direct_messages/welcome_messages/show.json",
-            &vec![("id", id)]
+            &vec![("id", id)],
         )?;
         Ok(TwapiResponse::new(&mut res))
     }
 
     fn post_direct_messages_welcome_messages_new(
         &self,
-        value: &serde_json::Value
+        value: &serde_json::Value,
     ) -> Result<TwapiResponse, TwapiError> {
         let mut res = self.json(
             "https://api.twitter.com/1.1/direct_messages/welcome_messages/new.json",
             &vec![],
-            value
+            value,
         )?;
         Ok(TwapiResponse::new(&mut res))
     }
 
     fn delete_direct_messages_welcome_messages_destroy(
         &self,
-        id: &str
+        id: &str,
     ) -> Result<TwapiResponse, TwapiError> {
         let mut res = self.delete(
             "https://api.twitter.com/1.1/direct_messages/welcome_messages/destroy.json",
-            &vec![("id", id)]
+            &vec![("id", id)],
         )?;
         Ok(TwapiResponse::new(&mut res))
     }
 
-    fn get_media_upload(
-        &self,
-        media_id: &str,
-    ) -> Result<TwapiResponse, TwapiError> {
+    fn get_media_upload(&self, media_id: &str) -> Result<TwapiResponse, TwapiError> {
         let mut res = self.get(
             "https://upload.twitter.com/1.1/media/upload.json",
-            &vec![("command", "STATUS"), ("media_id", media_id)]
+            &vec![("command", "STATUS"), ("media_id", media_id)],
         )?;
         Ok(TwapiResponse::new(&mut res))
     }
@@ -334,7 +338,11 @@ pub trait Twapi {
                 if state == "succeeded" || state == "failed" {
                     return Ok(result);
                 }
-                processing_info.get("check_after_secs").unwrap().as_u64().unwrap()
+                processing_info
+                    .get("check_after_secs")
+                    .unwrap()
+                    .as_u64()
+                    .unwrap()
             };
             thread::sleep(time::Duration::new(check_after_secs, 0));
         }
@@ -343,10 +351,9 @@ pub trait Twapi {
     fn post_media_upload(
         &self,
         file: &str,
-        additional_owners: Option<String>
+        additional_owners: Option<String>,
     ) -> Result<TwapiResponse, TwapiError> {
-        let form = reqwest::multipart::Form::new()
-            .file("media", file)?;
+        let form = reqwest::multipart::Form::new().file("media", file)?;
         let form = if let Some(additional_owners) = additional_owners {
             form.text("additional_owners", additional_owners)
         } else {
@@ -355,7 +362,7 @@ pub trait Twapi {
         let mut res = self.multipart(
             "https://upload.twitter.com/1.1/media/upload.json",
             &vec![],
-            form
+            form,
         )?;
         Ok(TwapiResponse::new(&mut res))
     }
@@ -365,7 +372,7 @@ pub trait Twapi {
         file: &str,
         media_type: &str,
         media_category: &str,
-        additional_owners: Option<String>
+        additional_owners: Option<String>,
     ) -> Result<TwapiResponse, TwapiError> {
         let metadata = std::fs::metadata(file)?;
         let file_size = metadata.len();
@@ -383,14 +390,21 @@ pub trait Twapi {
             let mut response = self.multipart(
                 "https://upload.twitter.com/1.1/media/upload.json",
                 &vec![],
-                form
+                form,
             )?;
             let result = TwapiResponse::new(&mut response);
             if !result.is_success() {
                 return Ok(result);
             }
             String::from(
-                result.json.unwrap().get("media_id_string").unwrap().as_str().unwrap())
+                result
+                    .json
+                    .unwrap()
+                    .get("media_id_string")
+                    .unwrap()
+                    .as_str()
+                    .unwrap(),
+            )
         };
 
         let mut segment_index = 0;
@@ -413,7 +427,7 @@ pub trait Twapi {
             let mut response = self.multipart(
                 "https://upload.twitter.com/1.1/media/upload.json",
                 &vec![],
-                form
+                form,
             )?;
             segment_index = segment_index + 1;
             let result = TwapiResponse::new(&mut response);
@@ -429,7 +443,7 @@ pub trait Twapi {
         let mut response = self.multipart(
             "https://upload.twitter.com/1.1/media/upload.json",
             &vec![],
-            form
+            form,
         )?;
         let result = TwapiResponse::new(&mut response);
         if !result.is_success() {
@@ -448,12 +462,12 @@ pub trait Twapi {
 
     fn post_media_metadata_create(
         &self,
-        value: &serde_json::Value
+        value: &serde_json::Value,
     ) -> Result<TwapiResponse, TwapiError> {
         let mut res = self.json(
             "https://upload.twitter.com/1.1/media/metadata/create.json",
             &vec![],
-            value
+            value,
         )?;
         Ok(TwapiResponse::new(&mut res))
     }
@@ -466,7 +480,7 @@ pub trait Twapi {
         let mut res = self.post(
             &make_account_activity_uri("webhooks", env_name, None),
             &vec![("url", uri)],
-            &vec![]
+            &vec![],
         )?;
         Ok(TwapiResponse::new(&mut res))
     }
@@ -513,14 +527,12 @@ pub trait Twapi {
         let mut res = self.post(
             &make_account_activity_uri("subscriptions", env_name, None),
             &vec![],
-            &vec![]
+            &vec![],
         )?;
         Ok(TwapiResponse::new(&mut res))
     }
 
-    fn get_account_activity_all_count(
-        &self,
-    ) -> Result<TwapiResponse, TwapiError> {
+    fn get_account_activity_all_count(&self) -> Result<TwapiResponse, TwapiError> {
         let mut res = self.get(
             "https://api.twitter.com/1.1/account_activity/all/count.json",
             &vec![],
@@ -564,15 +576,13 @@ pub trait Twapi {
 
 /// Application Only Authenticaiton by oauth2
 pub struct ApplicationAuth {
-    bearer_token: String
+    bearer_token: String,
 }
 
 impl ApplicationAuth {
-    pub fn new (
-        bearer_token: &str,
-    ) -> ApplicationAuth {
+    pub fn new(bearer_token: &str) -> ApplicationAuth {
         ApplicationAuth {
-            bearer_token: String::from(bearer_token)
+            bearer_token: String::from(bearer_token),
         }
     }
 }
@@ -592,7 +602,7 @@ pub struct UserAuth {
 }
 
 impl UserAuth {
-    pub fn new (
+    pub fn new(
         consumer_key: &str,
         consumer_secret: &str,
         access_token: &str,
@@ -608,12 +618,7 @@ impl UserAuth {
 }
 
 impl Twapi for UserAuth {
-    fn authorization_header(
-        &self,
-        method: &str,
-        uri: &str,
-        options: &Vec<(&str, &str)>,
-    ) -> String {
+    fn authorization_header(&self, method: &str, uri: &str, options: &Vec<(&str, &str)>) -> String {
         twapi_oauth::oauth1_authorization_header(
             &self.consumer_key,
             &self.consumer_secret,

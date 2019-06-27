@@ -1,21 +1,18 @@
 //! User Authentication OAuth1
-extern crate url;
-extern crate reqwest;
-extern crate serde_json;
-extern crate twapi_oauth;
+use reqwest;
+use url;
+
+use twapi_oauth;
 
 use self::reqwest::header::{HeaderMap, AUTHORIZATION};
-use std::collections::HashMap;
 use super::TwapiError;
+use std::collections::HashMap;
 
 fn execute_token(uri: &str, signed: &str) -> Result<HashMap<String, String>, TwapiError> {
     let mut headers = HeaderMap::new();
     headers.insert(AUTHORIZATION, format!("OAuth {}", signed).parse().unwrap());
     let client = reqwest::Client::new();
-    let mut response = client
-        .post(uri)
-        .headers(headers)
-        .send()?;
+    let mut response = client.post(uri).headers(headers).send()?;
     let status_code = response.status().as_u16();
     if status_code < 200 || status_code >= 300 {
         return Err(TwapiError::Token((status_code, response.text()?)));
@@ -30,7 +27,7 @@ pub fn request_token(
     consumer_key: &str,
     consumer_secret: &str,
     oauth_callback: &str,
-    x_auth_access_type: Option<&str>
+    x_auth_access_type: Option<&str>,
 ) -> Result<(String, String, String), TwapiError> {
     let uri = "https://api.twitter.com/oauth/request_token";
     let mut header_options = vec![("oauth_callback", oauth_callback)];
@@ -43,14 +40,18 @@ pub fn request_token(
         &header_options,
         "POST",
         uri,
-        &vec![]
+        &vec![],
     );
     let hash_query = execute_token(uri, &signed)?;
     let oauth_token = hash_query.get("oauth_token").unwrap();
-    Ok((oauth_token.clone(),
+    Ok((
+        oauth_token.clone(),
         hash_query.get("oauth_token_secret").unwrap().clone(),
-        format!("http://api.twitter.com/oauth/authorize?oauth_token={}", oauth_token)
-        ))
+        format!(
+            "http://api.twitter.com/oauth/authorize?oauth_token={}",
+            oauth_token
+        ),
+    ))
 }
 
 /// OAuth access token
@@ -60,7 +61,7 @@ pub fn access_token(
     consumer_secret: &str,
     oauth_token: &str,
     oauth_token_secret: &str,
-    oauth_verifier: &str
+    oauth_verifier: &str,
 ) -> Result<(String, String, String, String), TwapiError> {
     let uri = "https://api.twitter.com/oauth/access_token";
     let signed = twapi_oauth::calc_oauth_header(
@@ -72,12 +73,13 @@ pub fn access_token(
         ],
         "POST",
         uri,
-        &vec![]
+        &vec![],
     );
     let hash_query = execute_token(uri, &signed)?;
-    Ok((hash_query.get("oauth_token").unwrap().clone(),
+    Ok((
+        hash_query.get("oauth_token").unwrap().clone(),
         hash_query.get("oauth_token_secret").unwrap().clone(),
         hash_query.get("user_id").unwrap().clone(),
-        hash_query.get("screen_name").unwrap().clone()
-        ))
+        hash_query.get("screen_name").unwrap().clone(),
+    ))
 }

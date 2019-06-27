@@ -4,8 +4,8 @@ extern crate crypto;
 extern crate ipnetwork;
 
 use self::crypto::mac::Mac;
-use std::net::Ipv4Addr;
 use self::ipnetwork::Ipv4Network;
+use std::net::Ipv4Addr;
 
 pub fn calc_hmac(key: &str, input: &str) -> String {
     let mut hmac = crypto::hmac::Hmac::new(crypto::sha2::Sha256::new(), key.as_bytes());
