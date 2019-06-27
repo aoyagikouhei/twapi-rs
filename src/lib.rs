@@ -2,6 +2,7 @@
 extern crate base64;
 extern crate reqwest;
 extern crate serde_json;
+extern crate twapi_oauth;
 
 use std::{thread, time};
 
@@ -39,7 +40,7 @@ impl TwapiResponse {
             None => None,
         }
     }
-} 
+}
 
 /// Error in twapi library
 #[derive(Debug)]
@@ -70,8 +71,8 @@ impl From<reqwest::UrlError> for TwapiError {
 }
 
 fn make_account_activity_uri(
-    command_type: &str, 
-    env_name: Option<&str>, 
+    command_type: &str,
+    env_name: Option<&str>,
     file_name: Option<&str>,
 ) -> String {
     let prefix = match env_name {
@@ -93,19 +94,19 @@ fn make_account_activity_uri(
 /// Access to Twitter API
 pub trait Twapi {
     fn authorization_header(
-        &self, 
-        method: &str, 
-        uri: &str, 
+        &self,
+        method: &str,
+        uri: &str,
         options: &Vec<(&str, &str)>
     ) -> String;
 
     fn get(
-        &self, 
-        uri: &str, 
+        &self,
+        uri: &str,
         query_options: &Vec<(&str, &str)>,
     ) -> Result<reqwest::Response, reqwest::Error> {
         let mut headers = HeaderMap::new();
-        headers.insert(AUTHORIZATION, 
+        headers.insert(AUTHORIZATION,
             self.authorization_header("GET", uri, query_options).parse().unwrap());
         let client = reqwest::Client::new();
         client
@@ -116,8 +117,8 @@ pub trait Twapi {
     }
 
     fn post(
-        &self, 
-        uri: &str, 
+        &self,
+        uri: &str,
         query_options: &Vec<(&str, &str)>,
         form_options: &Vec<(&str, &str)>,
     ) -> Result<reqwest::Response, reqwest::Error>{
@@ -126,7 +127,7 @@ pub trait Twapi {
             merged_options.push(*option);
         }
         let mut headers = HeaderMap::new();
-        headers.insert(AUTHORIZATION, 
+        headers.insert(AUTHORIZATION,
             self.authorization_header("POST", uri, &merged_options).parse().unwrap());
         let client = reqwest::Client::new();
         client
@@ -138,13 +139,13 @@ pub trait Twapi {
     }
 
     fn multipart(
-        &self, 
-        uri: &str, 
+        &self,
+        uri: &str,
         query_options: &Vec<(&str, &str)>,
         form: reqwest::multipart::Form,
     ) -> Result<reqwest::Response, reqwest::Error>{
         let mut headers = HeaderMap::new();
-        headers.insert(AUTHORIZATION, 
+        headers.insert(AUTHORIZATION,
             self.authorization_header("POST", uri, &vec![]).parse().unwrap());
         let client = reqwest::Client::new();
         client
@@ -156,12 +157,12 @@ pub trait Twapi {
     }
 
     fn put(
-        &self, 
-        uri: &str, 
+        &self,
+        uri: &str,
         query_options: &Vec<(&str, &str)>,
     ) -> Result<reqwest::Response, reqwest::Error> {
         let mut headers = HeaderMap::new();
-        headers.insert(AUTHORIZATION, 
+        headers.insert(AUTHORIZATION,
             self.authorization_header("PUT", uri, query_options).parse().unwrap());
         let client = reqwest::Client::new();
         client
@@ -172,12 +173,12 @@ pub trait Twapi {
     }
 
     fn delete(
-        &self, 
-        uri: &str, 
+        &self,
+        uri: &str,
         query_options: &Vec<(&str, &str)>
     ) -> Result<reqwest::Response, reqwest::Error> {
         let mut headers = HeaderMap::new();
-        headers.insert(AUTHORIZATION, 
+        headers.insert(AUTHORIZATION,
             self.authorization_header("DELETE", uri, query_options).parse().unwrap());
         let client = reqwest::Client::new();
         client
@@ -188,13 +189,13 @@ pub trait Twapi {
     }
 
     fn json(
-        &self, 
-        uri: &str, 
+        &self,
+        uri: &str,
         query_options: &Vec<(&str, &str)>,
         json: &serde_json::Value,
     ) -> Result<reqwest::Response, reqwest::Error>{
         let mut headers = HeaderMap::new();
-        headers.insert(AUTHORIZATION, 
+        headers.insert(AUTHORIZATION,
             self.authorization_header("POST", uri, &vec![]).parse().unwrap());
         let client = reqwest::Client::new();
         client
@@ -408,7 +409,7 @@ pub trait Twapi {
                 .text("media_id", media_id.clone())
                 .text("segment_index", segment_index.to_string())
                 .part("media", reqwest::multipart::Part::reader(cursor));
-            
+
             let mut response = self.multipart(
                 "https://upload.twitter.com/1.1/media/upload.json",
                 &vec![],
@@ -464,7 +465,7 @@ pub trait Twapi {
     ) -> Result<TwapiResponse, TwapiError> {
         let mut res = self.post(
             &make_account_activity_uri("webhooks", env_name, None),
-            &vec![("url", uri)], 
+            &vec![("url", uri)],
             &vec![]
         )?;
         Ok(TwapiResponse::new(&mut res))
@@ -511,7 +512,7 @@ pub trait Twapi {
     ) -> Result<TwapiResponse, TwapiError> {
         let mut res = self.post(
             &make_account_activity_uri("subscriptions", env_name, None),
-            &vec![], 
+            &vec![],
             &vec![]
         )?;
         Ok(TwapiResponse::new(&mut res))
@@ -573,12 +574,12 @@ impl ApplicationAuth {
         ApplicationAuth {
             bearer_token: String::from(bearer_token)
         }
-    }   
+    }
 }
 
 impl Twapi for ApplicationAuth {
     fn authorization_header(&self, _: &str, _: &str, _: &Vec<(&str, &str)>) -> String {
-        format!("Bearer {}", self.bearer_token)
+        twapi_oauth::oauth2_authorization_header(&self.bearer_token)
     }
 }
 
@@ -592,9 +593,9 @@ pub struct UserAuth {
 
 impl UserAuth {
     pub fn new (
-        consumer_key: &str, 
-        consumer_secret: &str, 
-        access_token: &str, 
+        consumer_key: &str,
+        consumer_secret: &str,
+        access_token: &str,
         access_token_secret: &str,
     ) -> UserAuth {
         UserAuth {
@@ -608,19 +609,19 @@ impl UserAuth {
 
 impl Twapi for UserAuth {
     fn authorization_header(
-        &self, 
-        method: &str, 
-        uri: &str, 
+        &self,
+        method: &str,
+        uri: &str,
         options: &Vec<(&str, &str)>,
     ) -> String {
-        let res = oauth1::calc_oauth_header(
-            &format!("{}&{}", &self.consumer_secret, &self.access_token_secret), 
+        twapi_oauth::oauth1_authorization_header(
             &self.consumer_key,
-            &vec![("oauth_token",  &self.access_token)],
+            &self.consumer_secret,
+            &self.access_token,
+            &self.access_token_secret,
             method,
             uri,
-            options
-        );
-        format!("OAuth {}", res)   
+            options,
+        )
     }
 }

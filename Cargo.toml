@@ -12,13 +12,12 @@ documentation = "https://docs.rs/twapi"
 
 [dependencies]
 base64 = "~0.10.1"
-chrono = "~0.4.6"
-rand = "~0.6.5"
-rust-crypto = "~0.2.36"
 url = "~1.7.2"
 reqwest = "~0.9.15"
 serde_json = "~1.0.39"
 ipnetwork = { version = "~0.14.0", optional = true }
+twapi-oauth = "~0.1.1"
 
 [features]
 account-activity = [ "ipnetwork" ]
+
