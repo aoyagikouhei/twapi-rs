@@ -1,3 +1,7 @@
+## 0.5.1 (2019/10/10)
+- modify space url encode from + to %20 for statuses upadate including space
+- related crate version up
+
 ## 0.5.0 (2019/06/28)
 - separate oauth to twapi-oauth
 - apply edition 2018

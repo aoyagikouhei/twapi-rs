@@ -1,0 +1,10 @@
+[package]
+name = "tweet"
+version = "0.1.0"
+authors = ["aoyagikouhei <aoyagi.kouhei@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+twapi = { path = "../.." }

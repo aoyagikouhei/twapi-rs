@@ -49,6 +49,7 @@ pub enum TwapiError {
     IO(std::io::Error),
     UrlError(reqwest::UrlError),
     Token((u16, String)),
+    UrlParse(url::ParseError),
     NotExists,
 }
 
@@ -67,6 +68,12 @@ impl From<std::io::Error> for TwapiError {
 impl From<reqwest::UrlError> for TwapiError {
     fn from(err: reqwest::UrlError) -> TwapiError {
         TwapiError::UrlError(err)
+    }
+}
+
+impl From<url::ParseError> for TwapiError {
+    fn from(err: url::ParseError) -> TwapiError {
+        TwapiError::UrlParse(err)
     }
 }
 
@@ -129,12 +136,19 @@ pub trait Twapi {
                 .unwrap(),
         );
         let client = reqwest::Client::new();
-        client
+        let mut req = client
             .post(uri)
             .query(query_options)
             .form(form_options)
             .headers(headers)
-            .send()
+            .build()?;
+        match serde_urlencoded::to_string(form_options) {
+            Ok(body) => {
+                *req.body_mut() = Some(body.replace('+', "%20").into());
+            },
+            Err(_) => {},
+        }
+        client.execute(req)
     }
 
     fn multipart(
