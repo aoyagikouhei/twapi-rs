@@ -8,6 +8,6 @@ fn main() {
         &args[3],
         &args[4],
     );
-    let res = user_auth.post_statuses_update(&vec![("status", "テ ス ト 4")]);
+    let res = user_auth.post_statuses_update(&vec![("status", "!\"'#$%&\\()+,/:;<=>?@[\\]^{|}~;-._* 全部`")]);
     println!("{:?}", res);
 }

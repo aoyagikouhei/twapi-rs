@@ -1,3 +1,6 @@
+## 0.5.2 (2019/10/10)
+- modify url encode modify * and ~ for statuses update
+
 ## 0.5.1 (2019/10/10)
 - modify space url encode from + to %20 for statuses upadate including space
 - related crate version up

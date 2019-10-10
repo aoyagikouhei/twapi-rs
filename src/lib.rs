@@ -144,7 +144,7 @@ pub trait Twapi {
             .build()?;
         match serde_urlencoded::to_string(form_options) {
             Ok(body) => {
-                *req.body_mut() = Some(body.replace('+', "%20").into());
+                *req.body_mut() = Some(body.replace('+', "%20").replace('*', "%2A").replace("%7E", "~").into());
             },
             Err(_) => {},
         }
