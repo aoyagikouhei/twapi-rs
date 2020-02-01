@@ -1,8 +1,4 @@
 //! Account Activity API
-extern crate base64;
-extern crate crypto;
-extern crate ipnetwork;
-
 use self::crypto::mac::Mac;
 use self::ipnetwork::Ipv4Network;
 use std::net::Ipv4Addr;

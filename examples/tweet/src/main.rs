@@ -1,13 +1,18 @@
 use twapi::Twapi;
+use std::env;
 
-fn main() {
-    let args: Vec<String> = std::env::args().collect();
+#[tokio::main]
+async fn main() {
+    let consumer_key = env::var("CONSUMER_KEY").unwrap();
+    let consumer_secret = env::var("CONSUMER_SECRET").unwrap();
+    let access_key = env::var("ACCESS_KEY").unwrap();
+    let access_secret = env::var("ACCESS_SECRET").unwrap();
     let user_auth = twapi::UserAuth::new(
-        &args[1],
-        &args[2],
-        &args[3],
-        &args[4],
+        &consumer_key,
+        &consumer_secret,
+        &access_key,
+        &access_secret,
     );
-    let res = user_auth.post_statuses_update(&vec![("status", "!\"'#$%&\\()+,/:;<=>?@[\\]^{|}~;-._* 全部`")]);
+    let res = user_auth.post_statuses_update(&vec![("status", "!\"'#$%&\\()+,/:;<=>?@[\\]^{|}~;-._* 全部4`")]).await;
     println!("{:?}", res);
 }
