@@ -17,16 +17,16 @@ A simple Twitter library. This is easy for customize.
 - Account Activity API
 - OAuth Web Application Example
 - Accout Activity Web Application Example
+- Async/Await(If you want sync executing, you use [twapi-ureq](https://crates.io/crates/twapi-ureq).)
 - Any Twitter API Exucutable (maybe...)
 
 ## Examples
 
 ```rust
-extern crate twapi;
-extern crate serde_json;
-
 use twapi::Twapi;
-fn main() {
+
+#[tokio::main]
+async fn main() {
     // Application Only Authentication Sample
     let consumer_key = "xxx";
     let consumer_secret = "xxx";
@@ -35,14 +35,14 @@ fn main() {
     );
     let res = applicaiton_auth.get_search_tweets(
         &vec![("q", "新宿"), ("count", "2")]
-    ).unwrap();
+    ).await.unwrap();
     println!("{:?}", res);
 
     // Custmize Sample. Any API Executable!
     let res: serde_json::Value = applicaiton_auth.get(
         "https://api.twitter.com/1.1/statuses/user_timeline.json",
         &vec![("screen_name", "aoyagikouhei"), ("count", "2")]
-    ).unwrap().json().unwrap();
+    ).await.unwrap().json().await.unwrap();
     println!("{:?}", res);
 
     // JSON Sample
@@ -66,11 +66,11 @@ fn main() {
         }
     }"#;
     let v : serde_json::Value = serde_json::from_str(data).unwrap();
-    let res = user_auth.post_direct_messages_events_new(&v);
+    let res = user_auth.post_direct_messages_events_new(&v).await;
     println!("{:?}", res);
 
     // Media Upload
-    let res = user_auth.post_media_upload_chunk("test.mp4", "video/mp4", "tweet_video", None);
+    let res = user_auth.post_media_upload_chunk("test.mp4", "video/mp4", "tweet_video", None).await;
     println!("{:?}", res);
 }
 ```

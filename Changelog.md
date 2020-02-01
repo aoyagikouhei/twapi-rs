@@ -1,3 +1,7 @@
+## 0.6.0 (2020/02/01)
+- add reqwest async/await
+- separate reqwest to twapi-reqwest
+
 ## 0.5.2 (2019/10/10)
 - modify url encode modify * and ~ for statuses update
 
