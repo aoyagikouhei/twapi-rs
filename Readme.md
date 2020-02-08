@@ -31,7 +31,7 @@ async fn main() {
     let consumer_key = "xxx";
     let consumer_secret = "xxx";
     let applicaiton_auth = twapi::ApplicationAuth::new(
-        &twapi::oauth2::get_bearer_token(consumer_key, consumer_secret).unwrap()
+        &twapi::oauth2::get_bearer_token(consumer_key, consumer_secret).await.unwrap()
     );
     let res = applicaiton_auth.get_search_tweets(
         &vec![("q", "新宿"), ("count", "2")]
