@@ -8,4 +8,4 @@ edition = "2018"
 
 [dependencies]
 twapi = { path = "../.." }
-tokio = { version = "^0.2", features = ["macros"] }
+tokio = { version = "^1", features = ["macros", "rt-multi-thread"] }

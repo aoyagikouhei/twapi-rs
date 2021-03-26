@@ -272,7 +272,7 @@ pub trait Twapi {
                     .as_u64()
                     .unwrap()
             };
-            tokio::time::delay_for(time::Duration::new(check_after_secs, 0)).await;
+            tokio::time::sleep(time::Duration::new(check_after_secs, 0)).await;
         }
     }
 

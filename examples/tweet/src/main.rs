@@ -14,5 +14,6 @@ async fn main() {
         &access_secret,
     );
     let res = user_auth.post_statuses_update(&vec![("status", "!\"'#$%&\\()+,/:;<=>?@[\\]^{|}~;-._* 全部4`")]).await;
+    //let res = user_auth.get_search_tweets(&vec![("q", "*abc"), ("count", "2")]).await;
     println!("{:?}", res);
 }

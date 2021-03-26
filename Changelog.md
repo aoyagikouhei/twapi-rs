@@ -1,3 +1,7 @@
+## 0.7.0 (2021/03/26)
+- updated twapi-reqwest 0.0
+- updated tokio 1.0
+
 ## 0.6.0 (2020/02/01)
 - add reqwest async/await
 - separate reqwest to twapi-reqwest
